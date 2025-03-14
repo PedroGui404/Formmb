@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deixe seu Comentário ou Sugestão</title>
+  <script src="https://cdn.tailwindcss.com?plugins=line-clamp"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+  <style>
+    /* Estilo para o fundo escuro do container principal */
+    .container-darken {
+      position: relative;
+    }
+
+    .container-darken::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5); /* Fundo escuro com 50% de opacidade */
+      z-index: 10; /* Garante que o fundo escuro fique acima do container */
+      border-radius: 0.5rem; /* Mesmo border-radius do container */
+    }
+
+    /* Posicionamento dos modais */
+    .loading-modal,
+    .success-modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20; /* Garante que o modal fique acima do fundo escuro */
+    }
+  </style>
+</head>
+
+<body class="text-gray-900 font-sans">
+
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <!-- Container Principal -->
+    <div id="mainContainer" class="max-w-6xl w-full bg-white rounded-lg shadow-xl hover:shadow-2xl transition-shadow duration-300 ease-in-out overflow-hidden flex flex-col md:flex-row">
+
+      <!-- Lado esquerdo (imagem) -->
+      <div class="w-full md:w-1/2 bg-cover bg-center" style="background-image: url('image.png');">
+      </div>
+
+      <!-- Lado direito (formulário) -->
+      <div class="w-full md:w-1/2 p-6">
+        <!-- Título com ícone -->
+        <h3 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+          <i class="fas fa-comment-alt mr-3 text-blue-500"></i> <!-- Ícone de comentário -->
+          Deixe seu comentário ou sugestão
+        </h3>
+
+        <!-- Formulário -->
+        <form id="suggestionForm" class="space-y-4">
+          <!-- Nome -->
+          <div>
+            <label for="name" class="block text-gray-700 font-medium">Nome</label>
+            <input type="text" id="name" name="name" class="w-full p-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+          </div>
+
+          <!-- E-mail -->
+          <div>
+            <label for="email" class="block text-gray-700 font-medium">E-mail</label>
+            <input type="email" id="email" name="email" class="w-full p-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+          </div>
+
+          <!-- Comentário -->
+          <div>
+            <label for="comment" class="block text-gray-700 font-medium">Comentário</label>
+            <textarea id="comment" name="comment" rows="4" class="w-full p-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required></textarea>
+          </div>
+
+          <!-- Botão de Envio -->
+          <button type="submit" class="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition duration-300">Enviar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Carregamento -->
+  <div id="loadingModal" class="loading-modal hidden">
+    <div class="bg-white p-8 rounded-lg text-center">
+      <div class="loading-spinner mb-4">
+        <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+      </div>
+      <p class="text-gray-700">Enviando comentário...</p>
+    </div>
+  </div>
+
+  <!-- Modal de Sucesso -->
+  <div id="successModal" class="success-modal hidden">
+    <div class="bg-white p-8 rounded-lg text-center">
+      <i class="fas fa-check-circle text-4xl text-green-500 mb-4"></i>
+      <p class="text-gray-700">Comentário enviado com sucesso!</p>
+      <button onclick="closeSuccessModal()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Fechar</button>
+    </div>
+  </div>
+
+  <script>
+    // Função para capturar parâmetros da URL
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    // Captura o valor do assunto e do link da URL
+    const assunto = getQueryParam('assunto');
+    const link = getQueryParam('link');
+
+    // Função para exibir o modal de carregamento
+    function showLoadingModal() {
+      const mainContainer = document.getElementById('mainContainer');
+      mainContainer.classList.add('container-darken'); // Adiciona fundo escuro ao container
+      document.getElementById('loadingModal').classList.remove('hidden');
+    }
+
+    // Função para esconder o modal de carregamento
+    function hideLoadingModal() {
+      const mainContainer = document.getElementById('mainContainer');
+      mainContainer.classList.remove('container-darken'); // Remove fundo escuro do container
+      document.getElementById('loadingModal').classList.add('hidden');
+    }
+
+    // Função para exibir o modal de sucesso
+    function showSuccessModal() {
+      const mainContainer = document.getElementById('mainContainer');
+      mainContainer.classList.add('container-darken'); // Adiciona fundo escuro ao container
+      document.getElementById('successModal').classList.remove('hidden');
+    }
+
+    // Função para fechar o modal de sucesso
+    function closeSuccessModal() {
+      const mainContainer = document.getElementById('mainContainer');
+      mainContainer.classList.remove('container-darken'); // Remove fundo escuro do container
+      document.getElementById('successModal').classList.add('hidden');
+    }
+
+    // Envio do formulário
+    document.getElementById('suggestionForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      // Exibe o modal de carregamento
+      showLoadingModal();
+
+      const formData = new FormData(this);
+
+      // Adiciona o assunto e o link ao FormData (se existirem)
+      if (assunto) {
+        formData.append('assunto', assunto);
+      }
+      if (link) {
+        formData.append('link', link);
+      }
+
+      // Envia os dados para o Google Sheets
+      fetch('https://script.google.com/macros/s/AKfycbxBX_brP10rfBhT3XKaghiuoLjQOZPKZxWJVsieOkWt820Ho8EIndIXRJRoav3xZKQIUw/exec', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Esconde o modal de carregamento e exibe o modal de sucesso
+        hideLoadingModal();
+        showSuccessModal();
+
+        // Limpa o formulário
+        document.getElementById('suggestionForm').reset();
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+        alert('Ocorreu um erro ao enviar o comentário.');
+        hideLoadingModal();
+      });
+    });
+  </script>
+</body>
+
+</html>
