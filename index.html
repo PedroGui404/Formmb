@@ -108,6 +108,15 @@
       return urlParams.get(param);
     }
 
+    // Função para formatar o assunto
+    function formatAssunto(assunto) {
+      if (!assunto) return '';
+      return assunto
+        .split('_') // Divide o assunto em palavras
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Coloca a primeira letra de cada palavra em maiúscula
+        .join(' '); // Junta as palavras novamente com espaços
+    }
+
     // Captura o valor do assunto e do link da URL
     const assunto = getQueryParam('assunto');
     const link = getQueryParam('link');
@@ -149,9 +158,10 @@
 
       const formData = new FormData(this);
 
-      // Adiciona o assunto e o link ao FormData (se existirem)
+      // Formata o assunto antes de enviar
       if (assunto) {
-        formData.append('assunto', assunto);
+        const formattedAssunto = formatAssunto(assunto);
+        formData.append('assunto', formattedAssunto);
       }
       if (link) {
         formData.append('link', link);
