@@ -2,167 +2,414 @@
 <html lang="pt-BR">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lista de Comentários</title>
-  <script src="https://cdn.tailwindcss.com?plugins=line-clamp"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-</head>
-
-<body class="font-sans">
-  <!-- Container Principal -->
-  <div id="container" class="flex items-center justify-center min-h-screen p-4 transition-opacity">
-    <div class="w-full max-w-6xl bg-white rounded-lg shadow-xl overflow-hidden">
-      <!-- Título -->
-      <div class="p-6 bg-blue-500 text-white">
-        <h1 class="text-2xl font-semibold flex items-center">
-          <i class="fas fa-comments mr-3"></i>
-          Lista de Comentários
-        </h1>
-      </div>
-
-      <!-- Tabela de Registros -->
-      <div class="p-6">
-        <div class="overflow-y-auto" style="max-height: 300px;">
-          <table class="w-full">
-            <thead>
-              <tr class="bg-gray-200">
-                <th class="p-3 text-left">Data</th>
-                <th class="p-3 text-left">Nome</th>
-                <th class="p-3 text-left">Email</th>
-                <th class="p-3 text-left">Assunto</th>
-                <th class="p-3 text-left">Link</th>
-                <th class="p-3 text-left">Comentário</th>
-              </tr>
-            </thead>
-            <tbody id="registros" class="divide-y divide-gray-200">
-              <!-- Registros serão carregados aqui -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal de Carregamento -->
-  <div id="loadingModal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
-    <div class="bg-white p-8 rounded-lg text-center">
-      <div class="loading-spinner mb-4">
-        <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
-      </div>
-      <p class="text-gray-700">Carregando dados...</p>
-    </div>
-  </div>
-
-  <!-- Modal para mostrar o comentário completo -->
-  <div id="modal" class="fixed bg-gray-100 inset-0 flex items-center justify-center hidden z-50">
-    <div class="p-6 bg-white rounded-lg max-w-2xl w-full">
-      <h2 class="text-xl font-semibold mb-4">Comentário Completo</h2>
-      <textarea id="comentarioTexto" class="w-full h-64 p-4 border border-gray-300 rounded-lg" readonly></textarea>
-      <div class="mt-4 flex justify-end">
-        <button id="fecharModal" class="px-4 py-2 bg-red-400 text-white rounded-lg hover:bg-red-500">Fechar</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // Função para formatar a data no formato brasileiro (dd/mm/aaaa)
-    function formatarDataBrasileira(data) {
-      const partes = new Date(data);
-      const dia = String(partes.getDate()).padStart(2, '0');
-      const mes = String(partes.getMonth() + 1).padStart(2, '0');
-      const ano = partes.getFullYear();
-      return `${dia}/${mes}/${ano}`;
-    }
-
-    function formatarDataHora(data, hora) {
-      const partesData = data.split('/');
-      const partesHora = hora.split(':');
-      return new Date(
-        parseInt(partesData[2]), 
-        parseInt(partesData[1]) - 1, 
-        parseInt(partesData[0]), 
-        parseInt(partesHora[0]), 
-        parseInt(partesHora[1])
-      );
-    }
-
-    // Função para exibir o modal de carregamento
-    function showLoadingModal() {
-      document.getElementById('loadingModal').classList.remove('hidden');
-      document.getElementById('container').classList.add('opacity-0'); // Adiciona opacidade ao conteúdo principal
-    }
-
-    // Função para esconder o modal de carregamento
-    function hideLoadingModal() {
-      document.getElementById('loadingModal').classList.add('hidden');
-      document.getElementById('container').classList.remove('opacity-0'); // Remove opacidade e restaura visibilidade
-    }
-
-    async function carregarDados() {
-      showLoadingModal(); // Exibe o modal de carregamento
-
-      try {
-        const response = await fetch('https://script.google.com/macros/s/AKfycbxAlEGHd1tZtT89gvsdf2y-e9bKkL-x9bVduK9XuJsMIETnGwKkFHgEBAnL2ISx2BwUsQ/exec');
-        const data = await response.json();
-
-        if (!Array.isArray(data)) {
-          throw new Error('Formato inválido da resposta');
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lista de Comentários</title>
+    <!-- Inclui Tailwind CSS e plugin line-clamp para truncar texto -->
+    <script src="https://cdn.tailwindcss.com?plugins=line-clamp"></script>
+    <!-- Link para o Google Fonts para usar a fonte Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Link para Font Awesome para ícones -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Define a fonte Inter como a padrão para o corpo */
+        body {
+            font-family: 'Inter', sans-serif;
         }
 
-        const registrosOrdenados = data.sort((a, b) => {
-          const dataHoraA = formatarDataHora(a.data, a.hora);
-          const dataHoraB = formatarDataHora(b.data, b.hora);
-          return dataHoraB - dataHoraA;
+        /* Estilo para a animação do spinner de carregamento */
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .animate-spin-custom {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Estilo para o background do modal de carregamento */
+        .loading-modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.4); /* Fundo semi-transparente escuro */
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 antialiased">
+    <!-- Container Principal da Aplicação -->
+    <div id="container" class="flex items-center justify-center min-h-screen p-4 md:p-8 transition-opacity duration-500">
+        <div class="w-full max-w-6xl bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200">
+            <!-- Título da Tabela -->
+            <div class="p-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-xl">
+                <h1 class="text-3xl font-bold flex items-center">
+                    <i class="fas fa-comments mr-4 text-blue-200"></i>
+                    Lista de Comentários
+                </h1>
+            </div>
+
+            <!-- Tabela de Registros -->
+            <div class="p-4 sm:p-6">
+                <!-- Wrapper para rolagem horizontal em telas pequenas e rolagem vertical limitada -->
+                <div class="overflow-x-auto overflow-y-auto max-h-96 rounded-lg border border-gray-200">
+                    <table class="w-full min-w-[700px] divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0 z-10">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Data</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nome</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assunto</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Link</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Comentário</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registros" class="bg-white divide-y divide-gray-100">
+                            <!-- Registros serão carregados aqui pelo JavaScript -->
+                            <tr>
+                                <td colspan="6" class="p-6 text-center text-gray-500 italic">A carregar os dados...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Controles de Paginação -->
+            <div id="pagination-controls" class="flex justify-center items-center p-4 space-x-1 sm:space-x-2 flex-wrap">
+                <!-- Os botões de paginação serão injetados aqui pelo JavaScript -->
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal de Carregamento -->
+    <div id="loadingModal" class="fixed inset-0 loading-modal-backdrop flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-10 rounded-xl shadow-xl text-center border border-gray-200">
+            <div class="loading-spinner mb-6">
+                <i class="fas fa-spinner animate-spin-custom text-5xl text-blue-600"></i>
+            </div>
+            <p class="text-xl font-medium text-gray-700">A carregar dados...</p>
+        </div>
+    </div>
+
+    <!-- Modal para mostrar o comentário completo -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white p-8 rounded-xl shadow-xl max-w-2xl w-full border border-gray-200 transform scale-95 opacity-0 transition-all duration-300" id="modalContent">
+            <h2 class="text-2xl font-semibold mb-5 text-gray-800">Comentário Completo</h2>
+            <textarea id="comentarioTexto" class="w-full h-64 p-4 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" readonly></textarea>
+            <div class="mt-6 flex justify-end">
+                <button id="fecharModal" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors duration-200 shadow-md">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allComments = []; // Armazena todos os comentários carregados
+        let commentsPerPage = 5; // Número de comentários por página
+        let currentPage = 1; // Página atual
+
+        // Função para formatar a data no formato brasileiro (dd/mm/aaaa)
+        function formatarDataBrasileira(dataISOString) {
+            const partes = new Date(dataISOString);
+            
+            if (isNaN(partes.getTime())) {
+                return 'Data Inválida';
+            }
+
+            const dia = String(partes.getDate()).padStart(2, '0');
+            const mes = String(partes.getMonth() + 1).padStart(2, '0');
+            const ano = partes.getFullYear();
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        // Função para formatar a data e hora para ordenação (agora aceita strings ISO)
+        function formatarDataHora(dataISOString) {
+            const dataObjeto = new Date(dataISOString);
+
+            if (isNaN(dataObjeto.getTime())) {
+                console.error(`Erro: String de data ISO inválida. Data: "${dataISOString}"`);
+                return new Date(NaN);
+            }
+            // console.log(`Original API string: "${dataISOString}" -> Objeto Date: ${dataObjeto.toISOString()}`); // Mantenha para depuração se necessário
+            return dataObjeto;
+        }
+
+        // Função para exibir o modal de carregamento
+        function showLoadingModal() {
+            document.getElementById('loadingModal').classList.remove('hidden');
+            document.getElementById('container').classList.add('opacity-0');
+        }
+
+        // Função para esconder o modal de carregamento
+        function hideLoadingModal() {
+            document.getElementById('loadingModal').classList.add('hidden');
+            document.getElementById('container').classList.remove('opacity-0');
+        }
+
+        // Função para renderizar os comentários na tabela com base na página atual
+        function renderComments() {
+            const tbody = document.getElementById('registros');
+            tbody.innerHTML = ''; // Limpa o conteúdo da tabela
+
+            const startIndex = (currentPage - 1) * commentsPerPage;
+            const endIndex = startIndex + commentsPerPage;
+            const commentsToDisplay = allComments.slice(startIndex, endIndex);
+
+            if (commentsToDisplay.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="p-6 text-center text-gray-500 italic">Nenhum comentário encontrado nesta página.</td>
+                    </tr>
+                `;
+            } else {
+                commentsToDisplay.forEach(registro => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-blue-50 transition-colors duration-150';
+
+                    const comentarioLimitado = registro.comment.length > 70 ? registro.comment.substring(0, 70) + '...' : registro.comment;
+
+                    row.innerHTML = `
+                        <td class="px-4 py-3 text-sm text-gray-800">${formatarDataBrasileira(registro.data)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-800">${registro.name}</td>
+                        <td class="px-4 py-3 text-sm text-gray-800">${registro.email}</td>
+                        <td class="px-4 py-3 text-sm text-gray-800">${registro.assunto || '<span class="text-gray-400 italic">Sem Assunto</span>'}</td>
+                        <td class="px-4 py-3 text-sm">
+                            ${registro.link ? `<a href="${registro.link}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center group">
+                                <i class="fas fa-external-link-alt mr-1 text-xs"></i> Link
+                            </a>` : '<span class="text-gray-400 italic">-</span>'}
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="line-clamp-2 cursor-pointer text-blue-600 hover:text-blue-800 hover:underline" onclick="mostrarComentario('${registro.comment.replace(/'/g, "\\'")}')">
+                                ${comentarioLimitado}
+                            </span>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+            renderPaginationControls(); // Renderiza os controles de paginação após a tabela
+        }
+
+        // Função para renderizar os controles de paginação com limitação de botões
+        function renderPaginationControls() {
+            const paginationDiv = document.getElementById('pagination-controls');
+            paginationDiv.innerHTML = ''; // Limpa os controles existentes
+
+            const totalPages = Math.ceil(allComments.length / commentsPerPage);
+            const maxVisiblePageNumbers = 5; // Define quantos botões numéricos de página serão visíveis
+
+            if (totalPages <= 1) {
+                if (allComments.length > 0) {
+                    paginationDiv.innerHTML = `<span class="text-gray-600">Página 1 de 1 (${allComments.length} comentários)</span>`;
+                }
+                return;
+            }
+
+            // Botão "Primeira Página" (<<)
+            const firstPageButton = document.createElement('button');
+            firstPageButton.innerHTML = '&laquo;'; // Double left arrow
+            firstPageButton.title = 'Primeira Página';
+            firstPageButton.className = `px-3 py-2 rounded-md transition-colors duration-150 ${currentPage === 1 ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`;
+            firstPageButton.disabled = currentPage === 1;
+            firstPageButton.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage = 1;
+                    renderComments();
+                }
+            });
+            paginationDiv.appendChild(firstPageButton);
+
+            // Botão "Página Anterior" (<)
+            const prevButton = document.createElement('button');
+            prevButton.innerHTML = '&lsaquo;'; // Single left arrow
+            prevButton.title = 'Página Anterior';
+            prevButton.className = `px-3 py-2 rounded-md transition-colors duration-150 ${currentPage === 1 ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`;
+            prevButton.disabled = currentPage === 1;
+            prevButton.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderComments();
+                }
+            });
+            paginationDiv.appendChild(prevButton);
+
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePageNumbers / 2));
+            let endPage = Math.min(totalPages, currentPage + Math.floor(maxVisiblePageNumbers / 2));
+
+            // Ajustar o início e o fim para garantir que o número correto de botões visíveis seja exibido
+            if (endPage - startPage + 1 < maxVisiblePageNumbers) {
+                if (startPage === 1) {
+                    endPage = Math.min(totalPages, maxVisiblePageNumbers);
+                } else if (endPage === totalPages) {
+                    startPage = Math.max(1, totalPages - maxVisiblePageNumbers + 1);
+                }
+            }
+            // Garantir que startPage não seja menor que 1 após os ajustes
+            startPage = Math.max(1, startPage);
+            // Garantir que endPage não seja maior que totalPages
+            endPage = Math.min(totalPages, endPage);
+
+
+            // Adicionar reticências à esquerda se houver páginas anteriores ocultas
+            if (startPage > 1) {
+                const ellipsisLeft = document.createElement('span');
+                ellipsisLeft.innerText = '...';
+                ellipsisLeft.className = 'px-3 py-2 text-gray-700';
+                paginationDiv.appendChild(ellipsisLeft);
+            }
+
+            // Botões de números de página
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.innerText = i;
+                pageButton.className = `px-4 py-2 rounded-md transition-colors duration-150 ${currentPage === i ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`;
+                pageButton.addEventListener('click', () => {
+                    currentPage = i;
+                    renderComments();
+                });
+                paginationDiv.appendChild(pageButton);
+            }
+
+            // Adicionar reticências à direita se houver páginas seguintes ocultas
+            if (endPage < totalPages) {
+                const ellipsisRight = document.createElement('span');
+                ellipsisRight.innerText = '...';
+                ellipsisRight.className = 'px-3 py-2 text-gray-700';
+                paginationDiv.appendChild(ellipsisRight);
+            }
+            
+            // Botão "Página Seguinte" (>)
+            const nextButton = document.createElement('button');
+            nextButton.innerHTML = '&rsaquo;'; // Single right arrow
+            nextButton.title = 'Próxima Página';
+            nextButton.className = `px-3 py-2 rounded-md transition-colors duration-150 ${currentPage === totalPages ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`;
+            nextButton.disabled = currentPage === totalPages;
+            nextButton.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderComments();
+                }
+            });
+            paginationDiv.appendChild(nextButton);
+
+            // Botão "Última Página" (>>)
+            const lastPageButton = document.createElement('button');
+            lastPageButton.innerHTML = '&raquo;'; // Double right arrow
+            lastPageButton.title = 'Última Página';
+            lastPageButton.className = `px-3 py-2 rounded-md transition-colors duration-150 ${currentPage === totalPages ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`;
+            lastPageButton.disabled = currentPage === totalPages;
+            lastPageButton.addEventListener('click', () => {
+                if (currentPage < totalPages) { // Only navigate if not already on the last page
+                    currentPage = totalPages;
+                    renderComments();
+                }
+            });
+            paginationDiv.appendChild(lastPageButton);
+
+            // Informação da página atual/total de páginas (oculta em ecrãs pequenos)
+            const pageInfo = document.createElement('span');
+            pageInfo.className = 'text-gray-700 ml-4 hidden md:block'; 
+            pageInfo.innerText = `Página ${currentPage} de ${totalPages} (${allComments.length} comentários)`;
+            paginationDiv.appendChild(pageInfo);
+        }
+
+        // Função assíncrona para carregar os dados da planilha
+        async function carregarDados() {
+            showLoadingModal();
+            const tbody = document.getElementById('registros');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="p-6 text-center text-gray-500 italic">A carregar os dados...</td>
+                </tr>
+            `;
+
+            try {
+                const response = await fetch('https://script.google.com/macros/s/AKfycbxAlEGHd1tZtT89gvsdf2y-e9bKkL-x9bVduK9XuJsMIETnGwKkFHgEBAnL2ISx2BwUsQ/exec');
+                const data = await response.json();
+                console.log("Dados brutos da API:", data);
+
+                if (!Array.isArray(data)) {
+                    throw new Error('Formato inválido da resposta da API. Esperado um array.');
+                }
+
+                // Ordena os registros por data, do mais recente para o mais antigo (DECASCENTE)
+                allComments = data.sort((a, b) => {
+                    const dataHoraA = formatarDataHora(a.data);
+                    const dataHoraB = formatarDataHora(b.data);
+                    
+                    if (isNaN(dataHoraA.getTime()) && isNaN(dataHoraB.getTime())) {
+                        return 0;
+                    }
+                    if (isNaN(dataHoraA.getTime())) {
+                        return 1;
+                    }
+                    if (isNaN(dataHoraB.getTime())) {
+                        return -1;
+                    }
+                    // console.log(`Comparando ${dataHoraA.toISOString()} com ${dataHoraB.toISOString()}: Resultado ${dataHoraB.getTime() - dataHoraA.getTime()}`); // Mantenha para depuração se necessário
+                    return dataHoraB.getTime() - dataHoraA.getTime();
+                });
+                console.log("Dados ordenados (mais recente para mais antigo):", allComments);
+
+                currentPage = 1; // Reseta para a primeira página ao carregar novos dados
+                renderComments(); // Renderiza a primeira página da tabela
+
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="p-6 text-center text-red-500 font-medium">
+                            <i class="fas fa-exclamation-triangle mr-2"></i> Ocorreu um erro ao carregar os dados. Por favor, tente novamente mais tarde.
+                        </td>
+                    </tr>
+                `;
+                // Se houver erro, também limpa os controles de paginação
+                document.getElementById('pagination-controls').innerHTML = '';
+            } finally {
+                hideLoadingModal();
+            }
+        }
+
+        // Função para exibir o modal de comentário completo
+        function mostrarComentario(comentario) {
+            document.getElementById('comentarioTexto').value = comentario;
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modalContent');
+
+            modal.classList.remove('hidden');
+            document.getElementById('container').classList.add('opacity-0');
+            
+            modalContent.offsetHeight; 
+            modalContent.classList.remove('scale-95', 'opacity-0');
+            modalContent.classList.add('scale-100', 'opacity-100');
+        }
+
+        // Event listener para fechar o modal de comentário
+        document.getElementById('fecharModal').addEventListener('click', function() {
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modalContent');
+            
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.getElementById('container').classList.remove('opacity-0');
+            }, 300);
         });
 
-        const registrosInvertidos = registrosOrdenados.reverse();  // Inversão da lista
-
-        const tbody = document.getElementById('registros');
-        tbody.innerHTML = '';
-
-        registrosInvertidos.slice(0, 5).forEach(registro => {
-          const row = document.createElement('tr');
-          row.className = 'hover:bg-gray-50 transition-colors';
-          const comentarioLimitado = registro.comment.length > 50 ? registro.comment.substring(0, 50) + '...' : registro.comment;
-
-          row.innerHTML = `
-            <td class="p-3">${formatarDataBrasileira(registro.data)}</td>
-            <td class="p-3">${registro.name}</td>
-            <td class="p-3">${registro.email}</td>
-            <td class="p-3">${registro.assunto || '-'}</td>
-            <td class="p-3">
-              ${registro.link ? `<a href="${registro.link}" target="_blank" class="text-blue-500 hover:underline">Link</a>` : '-' }
-            </td>
-            <td class="p-3">
-              <span class="line-clamp-1 cursor-pointer text-blue-500 hover:underline" onclick="mostrarComentario('${registro.comment}')">${comentarioLimitado}</span>
-            </td>
-          `;
-
-          tbody.appendChild(row);
+        // Event listener para fechar o modal clicando fora dele
+        document.getElementById('modal').addEventListener('click', function(event) {
+            const modalContent = document.getElementById('modalContent');
+            if (!modalContent.contains(event.target)) {
+                document.getElementById('fecharModal').click();
+            }
         });
 
-        hideLoadingModal(); // Esconde o modal de carregamento
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        alert('Ocorreu um erro ao carregar os dados.');
-        hideLoadingModal(); // Esconde o modal de carregamento mesmo em caso de erro
-      }
-    }
-
-    function mostrarComentario(comentario) {
-      document.getElementById('comentarioTexto').value = comentario;
-      document.getElementById('modal').classList.remove('hidden');
-      document.getElementById('container').classList.add('opacity-0');
-    }
-
-    document.getElementById('fecharModal').addEventListener('click', function() {
-      document.getElementById('modal').classList.add('hidden');
-      document.getElementById('container').classList.remove('opacity-0');
-    });
-
-    carregarDados(); // Carregar os dados quando a página é carregada
-  </script>
+        document.addEventListener('DOMContentLoaded', carregarDados);
+    </script>
 </body>
 
 </html>
